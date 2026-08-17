@@ -30,6 +30,18 @@ def project_path(path: Path | str) -> Path:
     return PROJECT_ROOT / path
 
 
+def env_first(*keys: str, default: str = "") -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value is not None:
+            return value
+    return default
+
+
+def env_bool(*keys: str, default: str = "0") -> bool:
+    return env_first(*keys, default=default).strip() == "1"
+
+
 def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
     if not path.exists():
         return
@@ -46,7 +58,7 @@ def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
         if key:
             values[key] = value
 
-    override = values.get("DOTENV_OVERRIDE", "0") == "1"
+    override = values.get("ENV_FILE_OVERRIDE", values.get("DOTENV_OVERRIDE", "0")) == "1"
     for key, value in values.items():
         if override or key not in os.environ:
             os.environ[key] = value
@@ -65,11 +77,6 @@ class Settings:
     wallet_output_path: Path = Path("generated_pump_profile_wallet.json")
 
     proxy_mode: str = "file"
-    proxyscrape_api_token: str = ""
-    proxyscrape_subaccount_id: str = ""
-    proxyscrape_country: str = ""
-    proxyscrape_proxy_username: str = ""
-    proxyscrape_proxy_password: str = ""
     proxy_file: Path = Path("proxies.txt")
     test_proxy_before_use: bool = True
     proxy_test_url: str = "https://api.ipify.org?format=json"
@@ -81,32 +88,30 @@ def load_settings() -> Settings:
     load_dotenv()
 
     return Settings(
-        target_wallet=os.getenv(
+        target_wallet=env_first(
+            "TARGET_PROFILE",
             "PUMP_TARGET_WALLET",
-            "2vKnXF4RWm3YNYuTo3xXvfkoum3Cfc9HYgReNbTTxbsz",
+            default="2vKnXF4RWm3YNYuTo3xXvfkoum3Cfc9HYgReNbTTxbsz",
         ).strip(),
         username=os.getenv("PUMP_USERNAME", "katakama").strip(),
         bio=os.getenv("PUMP_BIO", "the sexiest king"),
         pfp_path=project_path(os.getenv("PFP_PATH", "pfp.jpg")),
-        skip_profile_image=os.getenv("SKIP_PROFILE_IMAGE", "0") == "1",
-        auto_unique_username=os.getenv("AUTO_UNIQUE_USERNAME", "1") != "0",
-        use_data_overrides=os.getenv("USE_DATA_OVERRIDES", "0") == "1",
-        data_path=project_path(os.getenv("DATA_PATH", "data.json")),
+        skip_profile_image=env_bool("SKIP_PROFILE_IMAGE"),
+        auto_unique_username=env_first(
+            "AUTO_UNIQUE_USERNAME",
+            default="1",
+        ).strip() != "0",
+        use_data_overrides=env_bool("USE_PROFILE_DATA", "USE_DATA_OVERRIDES"),
+        data_path=project_path(env_first("PROFILE_DATA_PATH", "DATA_PATH", default="data.json")),
         wallet_output_path=project_path(
             os.getenv("WALLET_OUTPUT_PATH", "generated_pump_profile_wallet.json")
         ),
         proxy_mode=os.getenv("PROXY_MODE", "file").strip().lower(),
-        proxyscrape_api_token=os.getenv("PROXYSCRAPE_API_TOKEN", "").strip(),
-        proxyscrape_subaccount_id=os.getenv("PROXYSCRAPE_SUBACCOUNT_ID", "").strip(),
-        proxyscrape_country=os.getenv("PROXYSCRAPE_COUNTRY", "").strip().upper(),
-        proxyscrape_proxy_username=os.getenv(
-            "PROXYSCRAPE_PROXY_USERNAME", ""
-        ).strip(),
-        proxyscrape_proxy_password=os.getenv(
-            "PROXYSCRAPE_PROXY_PASSWORD", ""
-        ).strip(),
         proxy_file=project_path(os.getenv("PROXY_FILE", "proxies.txt")),
-        test_proxy_before_use=os.getenv("TEST_PROXY_BEFORE_USE", "1") != "0",
+        test_proxy_before_use=env_first(
+            "TEST_PROXY_BEFORE_USE",
+            default="1",
+        ).strip() != "0",
         proxy_test_url=os.getenv(
             "PROXY_TEST_URL",
             "https://api.ipify.org?format=json",

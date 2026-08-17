@@ -14,17 +14,8 @@ _proxy_lease_lock = threading.Lock()
 _leased_proxies: set[str] = set()
 
 
-def _with_global_proxy_credentials(host_port: str, settings: Settings) -> str:
-    if not settings.proxyscrape_proxy_username:
-        return f"http://{host_port}"
-
-    username = quote(settings.proxyscrape_proxy_username, safe="")
-    password = quote(settings.proxyscrape_proxy_password, safe="")
-    return f"http://{username}:{password}@{host_port}"
-
-
-def normalize_proxy_line(line: str, settings: Settings) -> str:
-    """Normalize common ProxyScrape/text proxy formats to a requests proxy URL."""
+def normalize_proxy_line(line: str) -> str:
+    """Normalize common text proxy formats to a requests proxy URL."""
     value = line.strip()
     if not value or value.startswith("#"):
         return ""
@@ -32,18 +23,18 @@ def normalize_proxy_line(line: str, settings: Settings) -> str:
     if value.startswith(("http://", "https://")):
         return value
 
-    if "@" in value:
-        return f"http://{value}"
-
-    parts = value.split(":")
+    parts = value.split(":", 3)
     if len(parts) == 2:
-        return _with_global_proxy_credentials(value, settings)
+        return f"http://{value}"
 
     if len(parts) == 4:
         host, port, username, password = parts
         username = quote(username, safe="")
         password = quote(password, safe="")
         return f"http://{username}:{password}@{host}:{port}"
+
+    if "@" in value:
+        return f"http://{value}"
 
     raise ValueError(f"Unsupported proxy format: {value!r}")
 
@@ -56,83 +47,14 @@ def proxy_label(proxy_url: str) -> str:
     return "<proxy>"
 
 
-def fetch_proxyscrape_premium_http_proxies(settings: Settings) -> list[str]:
-    if not settings.proxyscrape_api_token:
-        raise RuntimeError(
-            "PROXYSCRAPE_API_TOKEN is required when PROXY_MODE=proxyscrape."
-        )
-    if not settings.proxyscrape_subaccount_id:
-        raise RuntimeError(
-            "PROXYSCRAPE_SUBACCOUNT_ID is required when PROXY_MODE=proxyscrape."
-        )
-
-    url = (
-        "https://api.proxyscrape.com/v4/account/"
-        f"{settings.proxyscrape_subaccount_id}/datacenter_shared/proxy-list"
-    )
-    params = [
-        ("type", "getproxies"),
-        ("protocol", "http"),
-        ("format", "normal"),
-    ]
-    if settings.proxyscrape_country:
-        params.append(("country[]", settings.proxyscrape_country))
-
-    response = requests.get(
-        url,
-        headers={"api-token": settings.proxyscrape_api_token},
-        params=params,
-        timeout=30,
-    )
-    response.raise_for_status()
-
-    raw_items = None
-    try:
-        data = response.json()
-        if isinstance(data, str):
-            raw_items = data.splitlines()
-        elif isinstance(data, list):
-            raw_items = [str(item) for item in data]
-        elif isinstance(data, dict):
-            for key in ("proxies", "data", "items"):
-                value = data.get(key)
-                if isinstance(value, list):
-                    raw_items = [str(item) for item in value]
-                    break
-                if isinstance(value, str):
-                    raw_items = value.splitlines()
-                    break
-    except ValueError:
-        pass
-
-    if raw_items is None:
-        raw_items = response.text.splitlines()
-
-    proxies = []
-    seen = set()
-    for raw in raw_items:
-        raw = raw.strip().strip('"')
-        if not raw:
-            continue
-        proxy = normalize_proxy_line(raw, settings)
-        if proxy and proxy not in seen:
-            seen.add(proxy)
-            proxies.append(proxy)
-
-    if not proxies:
-        raise RuntimeError("ProxyScrape returned an empty Premium HTTP proxy list.")
-
-    return proxies
-
-
-def load_proxy_file(path: Path, settings: Settings) -> list[str]:
+def load_proxy_file(path: Path) -> list[str]:
     if not path.exists():
         raise FileNotFoundError(f"Proxy file not found: {path.resolve()}")
 
     proxies = []
     seen = set()
     for raw in path.read_text(encoding="utf-8").splitlines():
-        proxy = normalize_proxy_line(raw, settings)
+        proxy = normalize_proxy_line(raw)
         if proxy and proxy not in seen:
             seen.add(proxy)
             proxies.append(proxy)
@@ -147,11 +69,6 @@ def load_proxy_candidates(settings: Settings) -> list[str]:
     cache_key = (
         settings.proxy_mode,
         str(settings.proxy_file),
-        settings.proxyscrape_subaccount_id,
-        settings.proxyscrape_country,
-        settings.proxyscrape_api_token,
-        settings.proxyscrape_proxy_username,
-        settings.proxyscrape_proxy_password,
     )
     with _proxy_cache_lock:
         cached = _proxy_candidates_cache.get(cache_key)
@@ -160,12 +77,10 @@ def load_proxy_candidates(settings: Settings) -> list[str]:
 
         if settings.proxy_mode == "off":
             candidates = []
-        elif settings.proxy_mode == "proxyscrape":
-            candidates = fetch_proxyscrape_premium_http_proxies(settings)
         elif settings.proxy_mode == "file":
-            candidates = load_proxy_file(settings.proxy_file, settings)
+            candidates = load_proxy_file(settings.proxy_file)
         else:
-            raise ValueError(f"Unknown PROXY_MODE: {settings.proxy_mode!r}")
+            raise ValueError("PROXY_MODE must be 'file' or 'off'.")
 
         _proxy_candidates_cache[cache_key] = list(candidates)
         return list(candidates)
