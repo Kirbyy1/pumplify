@@ -2,14 +2,23 @@ import unittest
 from unittest.mock import patch
 
 from pumplify.config import Settings
-from pumplify.runner import (
+from pumplify.followback import (
     choose_follow_back_count,
+    sample_follow_back_entries,
+)
+from pumplify.profile import (
     clean_username_base,
     extract_profile_address,
     extract_profile_username,
     make_username,
     profile_identifier,
-    sample_follow_back_entries,
+)
+
+
+FOLLOWBACK_BUCKETS = (
+    (90, 3, 8),
+    (8, 9, 20),
+    (2, 21, 40),
 )
 
 
@@ -22,15 +31,15 @@ class UsernameTests(unittest.TestCase):
     def test_data_override_username_is_used_as_unique_base(self):
         settings = Settings(username="katakama", auto_unique_username=True)
 
-        with patch("pumplify.runner.random_suffix", return_value="9x"):
+        with patch("pumplify.profile.random_suffix", return_value="9x"):
             self.assertEqual(make_username(settings, "roshiiiii"), "roshiiiii9x")
 
     def test_unique_username_is_capped_at_15_characters(self):
         settings = Settings(username="katakama", auto_unique_username=True)
 
-        with patch("pumplify.runner.random_suffix", return_value="tj"):
+        with patch("pumplify.profile.random_suffix", return_value="tj"):
             self.assertEqual(make_username(settings, "miaumiaulia"), "miaumiauliatj")
-        with patch("pumplify.runner.random_suffix", return_value="8x"):
+        with patch("pumplify.profile.random_suffix", return_value="8x"):
             self.assertEqual(make_username(settings, "snortingramash"), "snortingramas8x")
 
     def test_data_override_username_can_be_exact_when_unique_disabled(self):
@@ -75,21 +84,21 @@ class UsernameTests(unittest.TestCase):
 
 class FollowBackTests(unittest.TestCase):
     def test_common_follow_back_bucket_is_3_to_8(self):
-        with patch("pumplify.runner.random.randint", side_effect=[90, 6]):
-            self.assertEqual(choose_follow_back_count(100), 6)
+        with patch("pumplify.followback.random.randint", side_effect=[90, 6]):
+            self.assertEqual(choose_follow_back_count(100, FOLLOWBACK_BUCKETS), 6)
 
     def test_rare_follow_back_bucket_can_reach_40(self):
-        with patch("pumplify.runner.random.randint", side_effect=[100, 40]):
-            self.assertEqual(choose_follow_back_count(200), 40)
+        with patch("pumplify.followback.random.randint", side_effect=[100, 40]):
+            self.assertEqual(choose_follow_back_count(200, FOLLOWBACK_BUCKETS), 40)
 
     def test_follow_back_count_is_capped_by_available_accounts(self):
-        with patch("pumplify.runner.random.randint", side_effect=[100, 40]):
-            self.assertEqual(choose_follow_back_count(12), 12)
+        with patch("pumplify.followback.random.randint", side_effect=[100, 40]):
+            self.assertEqual(choose_follow_back_count(12, FOLLOWBACK_BUCKETS), 12)
 
     def test_sample_follow_back_entries_uses_subset(self):
         entries = [{"publicAddress": str(i)} for i in range(30)]
 
-        with patch("pumplify.runner.random.sample", return_value=entries[:12]) as sample:
+        with patch("pumplify.followback.random.sample", return_value=entries[:12]) as sample:
             selected = sample_follow_back_entries(entries, 12)
 
         self.assertEqual(selected, entries[:12])
