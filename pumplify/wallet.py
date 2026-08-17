@@ -90,6 +90,7 @@ def save_wallet(
     auth_token_expires_at: float | None = None,
     status: str = "completed",
     failed_step: str | None = None,
+    username: str | None = None,
 ) -> Path:
     output_path = settings.wallet_output_path
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,6 +106,7 @@ def save_wallet(
                 "createdAt": datetime.now(UTC).isoformat(),
                 "status": status,
                 "failedStep": failed_step,
+                "username": username,
                 "pumpProfile": f"https://pump.fun/profile/{address}",
                 "targetProfile": f"https://pump.fun/profile/{settings.target_wallet}",
                 "proxy": proxy_label(proxy_url) if proxy_url else None,

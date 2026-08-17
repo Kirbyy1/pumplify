@@ -19,7 +19,10 @@ python main.py
 Configuration is loaded from `.env`, with real environment variables taking
 precedence. Use `.env.example` as the template.
 
-- `PUMP_TARGET_WALLET`
+- `TARGET_PROFILE`
+- `ENV_FILE_OVERRIDE`
+- `USE_PROFILE_DATA`
+- `PROFILE_DATA_PATH`
 - `PUMP_USERNAME`
 - `PUMP_BIO`
 - `PFP_PATH`
@@ -27,11 +30,6 @@ precedence. Use `.env.example` as the template.
 - `AUTO_UNIQUE_USERNAME`
 - `PROXY_MODE`
 - `PROXY_FILE`
-- `PROXYSCRAPE_API_TOKEN`
-- `PROXYSCRAPE_SUBACCOUNT_ID`
-- `PROXYSCRAPE_COUNTRY`
-- `PROXYSCRAPE_PROXY_USERNAME`
-- `PROXYSCRAPE_PROXY_PASSWORD`
 - `TEST_PROXY_BEFORE_USE`
 - `PROXY_TEST_URL`
 - `PROXY_TEST_TIMEOUT`

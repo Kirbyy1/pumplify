@@ -2,7 +2,7 @@ import json
 import mimetypes
 import time
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import base58
 import requests
@@ -59,16 +59,19 @@ def login(session: requests.Session, signing_key: signing.SigningKey, address: s
     )
 
 
-def set_name_and_bio(
+def update_profile(
     session: requests.Session,
     auth_token: str,
     username: str,
     bio: str,
+    image_url: str | None = None,
 ):
     payload = {
         "username": username,
         "bio": bio,
     }
+    if image_url is not None:
+        payload["profileImage"] = image_url
 
     return session.post(
         PROFILE_UPDATE_URL,
@@ -76,6 +79,15 @@ def set_name_and_bio(
         json=payload,
         timeout=20,
     )
+
+
+def set_name_and_bio(
+    session: requests.Session,
+    auth_token: str,
+    username: str,
+    bio: str,
+):
+    return update_profile(session, auth_token, username, bio)
 
 
 def upload_profile_image(
@@ -191,18 +203,9 @@ def set_profile_image(
     auth_token: str,
     image_url: str,
     bio: str,
+    username: str,
 ):
-    payload = {
-        "profileImage": image_url,
-        "bio": bio,
-    }
-
-    return session.post(
-        PROFILE_UPDATE_URL,
-        headers=auth_headers(auth_token, json_content=True),
-        json=payload,
-        timeout=20,
-    )
+    return update_profile(session, auth_token, username, bio, image_url)
 
 
 def follow_wallet(
@@ -225,10 +228,11 @@ def follow_wallet(
 
 
 
-def read_profile(session: requests.Session, auth_token: str, wallet: str):
+def read_profile(session: requests.Session, auth_token: str | None, wallet: str):
+    headers = auth_headers(auth_token) if auth_token else DEFAULT_HEADERS
     return session.get(
-        f"{API_BASE}/users/{wallet}",
-        headers=auth_headers(auth_token),
+        f"{API_BASE}/users/{quote(wallet, safe='')}",
+        headers=headers,
         timeout=20,
     )
 
