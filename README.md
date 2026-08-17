@@ -20,11 +20,14 @@ Configuration is loaded from `.env`, with real environment variables taking
 precedence. Use `.env.example` as the template.
 
 - `PUMP_TARGET_WALLET`
+- `DOTENV_OVERRIDE`
 - `PUMP_USERNAME`
 - `PUMP_BIO`
 - `PFP_PATH`
 - `SKIP_PROFILE_IMAGE`
 - `AUTO_UNIQUE_USERNAME`
+- `USE_DATA_OVERRIDES`
+- `DATA_PATH`
 - `PROXY_MODE`
 - `PROXY_FILE`
 - `PROXYSCRAPE_API_TOKEN`

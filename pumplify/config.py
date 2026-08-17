@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 API_BASE = "https://frontend-api-v3.pump.fun"
 LOGIN_URL = f"{API_BASE}/auth/login"
 PROFILE_UPDATE_URL = f"{API_BASE}/users"
@@ -21,10 +23,18 @@ DEFAULT_HEADERS = {
 }
 
 
-def load_dotenv(path: Path = Path(".env")) -> None:
+def project_path(path: Path | str) -> Path:
+    path = Path(path)
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
+def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
     if not path.exists():
         return
 
+    values = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -33,8 +43,12 @@ def load_dotenv(path: Path = Path(".env")) -> None:
         key, value = line.split("=", 1)
         key = key.strip()
         value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
 
-        if key and key not in os.environ:
+    override = values.get("DOTENV_OVERRIDE", "0") == "1"
+    for key, value in values.items():
+        if override or key not in os.environ:
             os.environ[key] = value
 
 
@@ -46,6 +60,8 @@ class Settings:
     pfp_path: Path = Path("pfp.jpg")
     skip_profile_image: bool = False
     auto_unique_username: bool = True
+    use_data_overrides: bool = False
+    data_path: Path = Path("data.json")
     wallet_output_path: Path = Path("generated_pump_profile_wallet.json")
 
     proxy_mode: str = "file"
@@ -71,10 +87,12 @@ def load_settings() -> Settings:
         ).strip(),
         username=os.getenv("PUMP_USERNAME", "katakama").strip(),
         bio=os.getenv("PUMP_BIO", "the sexiest king"),
-        pfp_path=Path(os.getenv("PFP_PATH", "pfp.jpg")),
+        pfp_path=project_path(os.getenv("PFP_PATH", "pfp.jpg")),
         skip_profile_image=os.getenv("SKIP_PROFILE_IMAGE", "0") == "1",
         auto_unique_username=os.getenv("AUTO_UNIQUE_USERNAME", "1") != "0",
-        wallet_output_path=Path(
+        use_data_overrides=os.getenv("USE_DATA_OVERRIDES", "0") == "1",
+        data_path=project_path(os.getenv("DATA_PATH", "data.json")),
+        wallet_output_path=project_path(
             os.getenv("WALLET_OUTPUT_PATH", "generated_pump_profile_wallet.json")
         ),
         proxy_mode=os.getenv("PROXY_MODE", "file").strip().lower(),
@@ -87,7 +105,7 @@ def load_settings() -> Settings:
         proxyscrape_proxy_password=os.getenv(
             "PROXYSCRAPE_PROXY_PASSWORD", ""
         ).strip(),
-        proxy_file=Path(os.getenv("PROXY_FILE", "proxies.txt")),
+        proxy_file=project_path(os.getenv("PROXY_FILE", "proxies.txt")),
         test_proxy_before_use=os.getenv("TEST_PROXY_BEFORE_USE", "1") != "0",
         proxy_test_url=os.getenv(
             "PROXY_TEST_URL",
