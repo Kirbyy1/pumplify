@@ -30,16 +30,20 @@ def project_path(path: Path | str) -> Path:
     return PROJECT_ROOT / path
 
 
-def env_first(*keys: str, default: str = "") -> str:
+def env_bool(*keys: str, default: str = "0") -> bool:
     for key in keys:
         value = os.getenv(key)
         if value is not None:
-            return value
-    return default
+            return value.strip() == "1"
+    return default == "1"
 
 
-def env_bool(*keys: str, default: str = "0") -> bool:
-    return env_first(*keys, default=default).strip() == "1"
+def env_int(key: str, default: int) -> int:
+    return int(os.getenv(key, str(default)).strip())
+
+
+def env_float(key: str, default: float) -> float:
+    return float(os.getenv(key, str(default)).strip())
 
 
 def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
@@ -58,7 +62,7 @@ def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> None:
         if key:
             values[key] = value
 
-    override = values.get("ENV_FILE_OVERRIDE", values.get("DOTENV_OVERRIDE", "0")) == "1"
+    override = values.get("ENV_FILE_OVERRIDE", "0") == "1"
     for key, value in values.items():
         if override or key not in os.environ:
             os.environ[key] = value
@@ -75,6 +79,9 @@ class Settings:
     use_data_overrides: bool = False
     data_path: Path = Path("data.json")
     wallet_output_path: Path = Path("generated_pump_profile_wallet.json")
+    run_log_dir: Path = Path("runs")
+    account_count: int = 50
+    account_workers: int = 4
 
     proxy_mode: str = "file"
     proxy_file: Path = Path("proxies.txt")
@@ -82,40 +89,47 @@ class Settings:
     proxy_test_url: str = "https://api.ipify.org?format=json"
     proxy_test_timeout: float = 10
     max_proxy_attempts: int = 10
+    http_retries: int = 2
+    retry_backoff_seconds: float = 0.75
+    followback_workers: int = 2
+    followback_buckets: tuple[tuple[int, int, int], ...] = (
+        (90, 3, 8),
+        (8, 9, 20),
+        (2, 21, 40),
+    )
 
 
 def load_settings() -> Settings:
     load_dotenv()
 
     return Settings(
-        target_wallet=env_first(
+        target_wallet=os.getenv(
             "TARGET_PROFILE",
-            "PUMP_TARGET_WALLET",
-            default="2vKnXF4RWm3YNYuTo3xXvfkoum3Cfc9HYgReNbTTxbsz",
+            "2vKnXF4RWm3YNYuTo3xXvfkoum3Cfc9HYgReNbTTxbsz",
         ).strip(),
         username=os.getenv("PUMP_USERNAME", "katakama").strip(),
         bio=os.getenv("PUMP_BIO", "the sexiest king"),
         pfp_path=project_path(os.getenv("PFP_PATH", "pfp.jpg")),
         skip_profile_image=env_bool("SKIP_PROFILE_IMAGE"),
-        auto_unique_username=env_first(
-            "AUTO_UNIQUE_USERNAME",
-            default="1",
-        ).strip() != "0",
-        use_data_overrides=env_bool("USE_PROFILE_DATA", "USE_DATA_OVERRIDES"),
-        data_path=project_path(env_first("PROFILE_DATA_PATH", "DATA_PATH", default="data.json")),
+        auto_unique_username=os.getenv("AUTO_UNIQUE_USERNAME", "1").strip() != "0",
+        use_data_overrides=env_bool("USE_PROFILE_DATA"),
+        data_path=project_path(os.getenv("PROFILE_DATA_PATH", "data.json")),
         wallet_output_path=project_path(
             os.getenv("WALLET_OUTPUT_PATH", "generated_pump_profile_wallet.json")
         ),
+        run_log_dir=project_path(os.getenv("RUN_LOG_DIR", "runs")),
+        account_count=env_int("ACCOUNT_COUNT", 50),
+        account_workers=env_int("ACCOUNT_WORKERS", 4),
         proxy_mode=os.getenv("PROXY_MODE", "file").strip().lower(),
         proxy_file=project_path(os.getenv("PROXY_FILE", "proxies.txt")),
-        test_proxy_before_use=env_first(
-            "TEST_PROXY_BEFORE_USE",
-            default="1",
-        ).strip() != "0",
+        test_proxy_before_use=os.getenv("TEST_PROXY_BEFORE_USE", "1").strip() != "0",
         proxy_test_url=os.getenv(
             "PROXY_TEST_URL",
             "https://api.ipify.org?format=json",
         ),
-        proxy_test_timeout=float(os.getenv("PROXY_TEST_TIMEOUT", "10")),
-        max_proxy_attempts=int(os.getenv("MAX_PROXY_ATTEMPTS", "10")),
+        proxy_test_timeout=env_float("PROXY_TEST_TIMEOUT", 10),
+        max_proxy_attempts=env_int("MAX_PROXY_ATTEMPTS", 10),
+        http_retries=env_int("HTTP_RETRIES", 2),
+        retry_backoff_seconds=env_float("RETRY_BACKOFF_SECONDS", 0.75),
+        followback_workers=env_int("FOLLOWBACK_WORKERS", 2),
     )

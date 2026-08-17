@@ -28,13 +28,19 @@ precedence. Use `.env.example` as the template.
 - `PFP_PATH`
 - `SKIP_PROFILE_IMAGE`
 - `AUTO_UNIQUE_USERNAME`
+- `ACCOUNT_COUNT`
+- `ACCOUNT_WORKERS`
 - `PROXY_MODE`
 - `PROXY_FILE`
 - `TEST_PROXY_BEFORE_USE`
 - `PROXY_TEST_URL`
 - `PROXY_TEST_TIMEOUT`
 - `MAX_PROXY_ATTEMPTS`
+- `HTTP_RETRIES`
+- `RETRY_BACKOFF_SECONDS`
 - `WALLET_OUTPUT_PATH`
+- `RUN_LOG_DIR`
+- `FOLLOWBACK_WORKERS`
 
 Generated wallets are appended to `WALLET_OUTPUT_PATH` as a JSON array. Each
 entry includes `publicAddress`, `privateKey`, creation time, profile URLs, and
