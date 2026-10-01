@@ -168,7 +168,7 @@ def bnb_name(address: str) -> dict | None:
 
 
 FOMO_DB = Path(os.environ.get(
-    "PUMPSCAN_FOMO_DB", r"C:\Users\alekkum\PycharmProjects\backrun\fomo_wallets.db"
+    "PUMPSCAN_FOMO_DB", Path(__file__).parent / "data" / "fomo_wallets.db"
 ))
 _fomo: tuple[float, dict[str, dict], dict[str, dict]] = (-1.0, {}, {})
 _fomo_lock = threading.Lock()

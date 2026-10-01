@@ -9,6 +9,11 @@ const landingEl = $("#landing");
 const recentEl = $("#recent");
 const toastEl = $("#toast");
 
+// Backend origin. Empty = same server that serves this page. Set the
+// <meta name="pumpscan-api"> tag in index.html when the page is hosted
+// elsewhere (e.g. v0 / Vercel) and the Flask API runs on another host.
+const API_BASE = (document.querySelector('meta[name="pumpscan-api"]')?.content || "").replace(/\/+$/, "");
+
 const EVM_RE = /^0x[0-9a-fA-F]{40}$/;
 const SOL_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -415,10 +420,10 @@ async function scan(address, chain) {
   const chains = chain === "auto" ? detected || ["solana"] : [chain];
   const finish = showProgress(stepsFor(chains, !detected));
   try {
-    if (location.protocol === "file:") {
+    if (location.protocol === "file:" && !API_BASE) {
       throw new Error("This page was opened as a file. Start the server (python pumpscan/app.py) and open http://localhost:8000 instead.");
     }
-    const res = await fetch(`/api/lookup?${new URLSearchParams({ q: address, chain })}`).catch(() => {
+    const res = await fetch(`${API_BASE}/api/lookup?${new URLSearchParams({ q: address, chain })}`).catch(() => {
       throw new Error("Can't reach the pumpscan server. Is it still running? Start it with: python pumpscan/app.py");
     });
     const data = await res.json().catch(() => ({ error: "Unexpected server response." }));
