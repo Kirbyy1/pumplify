@@ -5,3 +5,6 @@ __pycache__/
 .env
 generated_pump_profile_wallet.json
 proxies.txt
+
+# pumpscan local snapshots
+pumpscan/data/
