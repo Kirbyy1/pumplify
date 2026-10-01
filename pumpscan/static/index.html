@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pumpscan — wallet intelligence</title>
+  <meta name="description" content="Paste a Solana, Ethereum or BNB wallet and see who owns it.">
+  <meta name="theme-color" content="#0a0a10">
+  <!-- Backend URL, e.g. https://pumpscan.onrender.com. Leave empty when Flask serves this page. -->
+  <meta name="pumpscan-api" content="">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2386efac'/><circle cx='14' cy='14' r='6' fill='none' stroke='%23052e16' stroke-width='3.2'/><path d='M18.5 18.5l5 5' stroke='%23052e16' stroke-width='3.2' stroke-linecap='round'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+  </div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="pumpscan home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="14" r="6"/><path d="M18.5 18.5l5 5"/></svg>
+        </span>
+        <span class="brand-word">pump<b>scan</b></span>
+      </a>
+      <nav class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#sources">Sources</a>
+      </nav>
+      <div class="nav-status">
+        <span class="pulse"></span>
+        <span>Mainnet</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="eyebrow">
+        <span class="eyebrow-tag">NEW</span>
+        Wallet intelligence for Solana, Ethereum &amp; BNB
+      </div>
+      <h1>Know who's behind<br><span class="grad">every wallet.</span></h1>
+      <p class="lede">Paste a wallet to see who owns it, or search a name to find their wallets. pumpscan cross-checks pump.fun, kolscan, Fomo, naming services and entity labels in one pass.</p>
+
+      <form id="search" class="search" autocomplete="off">
+        <div class="search-box">
+          <svg class="search-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="address" name="address" type="text" spellcheck="false"
+                 placeholder="Wallet, .sol / .eth / .bnb name, KOL or Fomo handle…" aria-label="Wallet address or name" required>
+          <span id="detected" class="detected" hidden></span>
+          <button type="button" id="paste" class="ghost-btn" title="Paste from clipboard">Paste</button>
+          <kbd class="kbd" aria-hidden="true">/</kbd>
+          <button type="submit" id="go" class="primary-btn">
+            <span>Scan</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <div class="search-meta">
+          <div class="seg" role="radiogroup" aria-label="Network">
+            <label><input type="radio" name="chain" value="auto" checked><span>Auto</span></label>
+            <label><input type="radio" name="chain" value="solana"><span><i class="cdot sol"></i>Solana</span></label>
+            <label><input type="radio" name="chain" value="ethereum"><span><i class="cdot eth"></i>Ethereum</span></label>
+            <label><input type="radio" name="chain" value="bnb"><span><i class="cdot bnb"></i>BNB</span></label>
+          </div>
+          <div class="examples">
+            <span>Try</span>
+            <button type="button" data-try="CebN5WGQ4jvEPvsVU4EoHEpgzq1VV7AbicfhtW4xC9iM">pump.fun fees</button>
+            <button type="button" data-try="vitalik.eth">vitalik.eth</button>
+            <button type="button" data-try="decu">decu (KOL)</button>
+            <button type="button" data-try="toly.sol">toly.sol</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="recent" class="recent" hidden></div>
+    </section>
+
+    <section id="status" class="status" hidden aria-live="polite"></section>
+    <section id="result" class="result" hidden></section>
+
+    <section id="landing" class="landing">
+      <div class="stats">
+        <div class="stat"><b>3</b><span>networks</span></div>
+        <div class="stat"><b>7</b><span>identity sources</span></div>
+        <div class="stat"><b>100%</b><span>public data</span></div>
+        <div class="stat"><b>0</b><span>sign-ups</span></div>
+      </div>
+
+      <div class="section-head" id="how">
+        <span class="kicker">How it works</span>
+        <h2>One paste. Every public signal.</h2>
+      </div>
+      <div class="features">
+        <article class="feature">
+          <div class="feature-ico"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg></div>
+          <h3>Search either way</h3>
+          <p>Paste a base58 or 0x wallet, or type a name, @handle or .sol / .eth / .bnb domain to find the wallets behind it.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+          <h3>Resolves identity</h3>
+          <p>kolscan KOLs, Fomo profiles, pump.fun usernames, linked X handles, .sol, .eth and .bnb names, plus labelled exchanges.</p>
+        </article>
+        <article class="feature">
+          <div class="feature-ico"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></div>
+          <h3>Scores confidence</h3>
+          <p>Every match is weighted by source. Agreement between sources pushes the score up; nothing is guessed.</p>
+        </article>
+      </div>
+
+      <div class="section-head" id="sources">
+        <span class="kicker">Sources</span>
+        <h2>Built on public data only.</h2>
+      </div>
+      <div class="sources">
+        <div class="source"><i class="cdot sol"></i><b>kolscan</b><span>KOL wallets &amp; PnL</span></div>
+        <div class="source"><i class="cdot all"></i><b>Fomo</b><span>Profile-bound wallets</span></div>
+        <div class="source"><i class="cdot sol"></i><b>pump.fun</b><span>Profiles &amp; created coins</span></div>
+        <div class="source"><i class="cdot sol"></i><b>SNS</b><span>.sol primary domains</span></div>
+        <div class="source"><i class="cdot eth"></i><b>ENS</b><span>.eth names &amp; records</span></div>
+        <div class="source"><i class="cdot bnb"></i><b>SPACE ID</b><span>.bnb names</span></div>
+        <div class="source"><i class="cdot all"></i><b>Labels</b><span>Exchanges &amp; protocols</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-inner">
+      <a class="brand small" href="/"><span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="14" cy="14" r="6"/><path d="M18.5 18.5l5 5"/></svg></span><span class="brand-word">pump<b>scan</b></span></a>
+      <p>Only publicly available on-chain and profile data is shown. An identity match is a signal, not proof of ownership.</p>
+      <span class="foot-copy">Not affiliated with pump.fun.</span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

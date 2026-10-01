@@ -1,0 +1,4 @@
+flask
+requests
+base58
+gunicorn

@@ -1,0 +1,19 @@
+# Render blueprint for the pumpscan backend (https://render.com/docs/blueprint-spec).
+# New > Blueprint > pick this repo. Add the optional API keys in the dashboard.
+services:
+  - type: web
+    name: pumpscan
+    runtime: python
+    plan: free
+    buildCommand: pip install -r pumpscan/requirements.txt
+    startCommand: gunicorn --chdir pumpscan --workers 2 --threads 4 --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: PUMPSCAN_CORS_ORIGINS
+        value: "*"
+      - key: MADEONSOL_API_KEY
+        sync: false
+      - key: SOLANATRACKER_API_KEY
+        sync: false
